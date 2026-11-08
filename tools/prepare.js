@@ -15,6 +15,25 @@ let shim = fs.readFileSync(path.join(__dirname, "bridge-polyfill.js"), "utf8") +
 shim = shim.replace('"__DATA_BASE__"', () => JSON.stringify(cfg.dataBaseUrl || ""));
 if (shim.includes("</script")) throw new Error("shim tidak boleh memuat </script");
 
+/* Ambil produk-kom.json & copas.json TERBARU dari repo data (jika dataBaseUrl diisi dan ada internet);
+   dipakai hanya bila ts di repo lebih baru dari salinan di src/. Matikan dengan FRESH_DATA=0. */
+async function freshenData() {
+  if (!cfg.dataBaseUrl || process.env.FRESH_DATA === "0" || typeof fetch !== "function") return;
+  for (const f of ["produk-kom.json", "copas.json"]) {
+    try {
+      const r = await fetch(cfg.dataBaseUrl + f + "?t=" + Date.now(), { cache: "no-store" });
+      if (!r.ok) { console.log("  " + f + ": repo HTTP " + r.status + " (dipakai salinan src/)"); continue; }
+      const t = await r.text(), rt = (JSON.parse(t).ts) || 0;
+      const p = path.join(src, f);
+      let lt = 0; try { lt = JSON.parse(fs.readFileSync(p, "utf8")).ts || 0; } catch (e) {}
+      if (rt > lt) { fs.writeFileSync(p, t); console.log("  " + f + ": diperbarui dari repo (ts " + lt + " -> " + rt + ")"); }
+      else console.log("  " + f + ": src/ sudah yang terbaru");
+    } catch (e) { console.log("  " + f + ": gagal ambil dari repo (" + e.message + "), dipakai salinan src/"); }
+  }
+}
+
+async function main() {
+await freshenData();
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
 
@@ -50,3 +69,5 @@ for (const f of fs.readdirSync(src)) {
 }
 if (!fs.existsSync(path.join(out, "index.html"))) throw new Error("src/index.html tidak ada");
 console.log("assets/public siap.");
+}
+main().catch((e) => { console.error(e); process.exit(1); });

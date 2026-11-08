@@ -82,11 +82,21 @@
     if (!of || !DATA_BASE) return Promise.resolve(null);
     return of(DATA_BASE + name + "?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.arrayBuffer() : null; }, function () { return null; });
   }
-  /* data json: penyimpanan privat app + repo (jika diatur); yang ts-nya lebih baru dipakai */
+  function readBundled(name) {
+    if (!of) return Promise.resolve(null);
+    return of("/" + name + "?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.arrayBuffer() : null; }, function () { return null; });
+  }
+  /* data json: salinan di dalam APK (jika dibundel), penyimpanan privat app, dan repo (jika diatur).
+     Yang "ts"-nya PALING BARU dipakai; kalau sama, urutan prioritas: repo > privat > APK. */
   function bestData(name) {
-    return Promise.all([readPriv(name), readRemote(name)]).then(function (a) {
-      if (a[0] && a[1]) return tsOf(a[1]) > tsOf(a[0]) ? a[1] : a[0];
-      return a[0] || a[1];
+    return Promise.all([readBundled(name), readPriv(name), readRemote(name)]).then(function (a) {
+      var best = null, bt = -1, i, t;
+      for (i = 0; i < a.length; i++) {
+        if (!a[i]) continue;
+        t = tsOf(a[i]);
+        if (t >= bt) { best = a[i]; bt = t; }
+      }
+      return best;
     });
   }
   /* dipakai oleh xhrGet (hasil patch) */
