@@ -65,7 +65,7 @@ public class Bridge {
                     else if ("printHtml".equals(method)) printHtml(id, a);
                     else if ("notifCheck".equals(method)) ok(id, perm(false));
                     else if ("notifRequest".equals(method)) requestNotif(id);
-                    else if ("notify".equals(method)) ok(id, notify(a));
+                    else if ("notify".equals(method)) ok(id, showNotif(a));
                     else if ("clipRead".equals(method)) clipRead(id);
                     else if ("clipWrite".equals(method)) clipWrite(id, a);
                     else fail(id, "Metode tidak dikenal: " + method);
@@ -240,7 +240,7 @@ public class Bridge {
         try { ok(id, perm(true)); } catch (Exception e) { fail(id, String.valueOf(e.getMessage())); }
     }
 
-    private JSONObject notify(JSONObject a) throws Exception {
+    private JSONObject showNotif(JSONObject a) throws Exception {
         if (!granted()) throw new Exception("Izin notifikasi belum diberikan");
         NotificationManager nm = (NotificationManager) act.getSystemService(Context.NOTIFICATION_SERVICE);
         if (Build.VERSION.SDK_INT >= 26) {
